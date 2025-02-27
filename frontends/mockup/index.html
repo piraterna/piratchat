@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piratchat</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            height: 100vh;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1e1e1e;
+            color: #e4e4e4;
+        }
+
+        .terminal {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+            background-color: #1e1e1e;
+            color: #e4e4e4;
+        }
+
+        .output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .input-container {
+            display: flex;
+            padding-top: 10px;
+        }
+
+        .input-container input {
+            width: 95%;
+            padding: 10px;
+            background-color: #2d2d2d;
+            color: #e4e4e4;
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+            margin-left: 5px;
+        }
+
+        .input-container button {
+            padding: 10px 15px;
+            background-color: #333;
+            color: #e4e4e4;
+            border: 1px solid #555;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .input-container button:hover {
+            background-color: #444;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .login-message {
+            color: #81a1c1;
+            margin-left: 10px;
+        }
+
+        .user-message {
+            color: #e4e4e4;
+        }
+
+        .server-message {
+            color: #888888;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="terminal">
+        <div class="output" id="output">
+            <span class="login-message">Welcome to Piratchat! Type <code>/help</code> for commands.</span>
+        </div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Message..." autofocus>
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const outputElement = document.getElementById('output');
+        const inputElement = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        let loggedIn = false;
+        let username = '';
+
+        // Utility function to get cookies
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        // Utility function to set cookies
+        function setCookie(name, value) {
+            const d = new Date();
+            d.setTime(d.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year expiration
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = `${name}=${value}; ${expires}; path=/`;
+        }
+
+        // Generate a random UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function displayOutput(message, isUserMessage = false) {
+            const p = document.createElement('p');
+            if (!isUserMessage) {
+                message = `[server] ${message}`; // Add [server] prefix to server messages
+            }
+            p.textContent = message;
+            if (isUserMessage) {
+                p.classList.add('user-message');
+            } else {
+                p.classList.add('server-message');
+            }
+            outputElement.appendChild(p);
+            outputElement.scrollTop = outputElement.scrollHeight;
+        }
+
+        function handleInput(input) {
+            const command = input.trim().toLowerCase();
+
+            if (!loggedIn) {
+                if (command.startsWith('/register ')) {
+                    const nick = command.slice(10).trim();
+                    if (nick) {
+                        const existingPassword = getCookie(nick);
+                        if (existingPassword) {
+                            displayOutput("This nickname is already taken. Please login with your password.", false);
+                        } else {
+                            const password = generateUUID();
+                            setCookie(nick, password);
+                            displayOutput(`Registered successfully with nickname: ${nick}. Your password is ${password}.`, false);
+                        }
+                    } else {
+                        displayOutput("Please enter a valid nickname.", false);
+                    }
+                } else if (command.startsWith('/login ')) {
+                    const password = command.slice(7).trim();
+                    for (let i = 0; i < document.cookie.split(';').length; i++) {
+                        const cookie = document.cookie.split(';')[i].trim();
+                        if (cookie.includes('=')) {
+                            const [cookieName, cookieValue] = cookie.split('=');
+                            if (password === cookieValue) {
+                                username = cookieName;
+                                loggedIn = true;
+                                displayOutput(`Logged in as: ${username}`, false);
+                                displayOutput("You can now chat. Type /help for available commands.", false);
+                                return;
+                            }
+                        }
+                    }
+                    displayOutput("Invalid password. Try again or register a new nickname.", false);
+                } else if (command === '/help') {
+                    displayOutput("Available commands:\n/register <nick> - Register a new nickname\n/login <password> - Login with your password\n/help - Show this help message", false);
+                } else {
+                    displayOutput("Invalid command. Type /help for help.", false);
+                }
+            } else {
+                if (command === '/help') {
+                    displayOutput("Available commands:\n/help - Show this help message", false);
+                } else {
+                    displayOutput(`<${username}>: ${command}`, true);
+                }
+            }
+        }
+
+        sendButton.addEventListener('click', function () {
+            const userInput = inputElement.value.trim();
+            if (userInput) {
+                handleInput(userInput);
+                inputElement.value = '';
+            }
+        });
+
+        inputElement.addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const userInput = inputElement.value.trim();
+                if (userInput) {
+                    handleInput(userInput);
+                    inputElement.value = '';
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
