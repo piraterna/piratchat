@@ -1,200 +1,533 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session API Test</title>
+    <title>Piratchat</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1e1e1e;
+            color: #e4e4e4;
+        }
+
+        .terminal {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
             padding: 20px;
+            overflow: hidden;
+            background-color: #1e1e1e;
+            color: #e4e4e4;
         }
-        .response {
-            margin-top: 10px;
+
+        .output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .input-container {
+            display: flex;
+            padding-top: 10px;
+        }
+
+        .input-container input {
+            width: 95%;
             padding: 10px;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
+            background-color: #2d2d2d;
+            color: #e4e4e4;
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+            margin-left: 5px;
         }
-        .btn {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
+
+        .input-container button {
+            padding: 10px 15px;
+            background-color: #333;
+            color: #e4e4e4;
+            border: 1px solid #555;
+            border-radius: 5px;
             cursor: pointer;
-            margin: 5px;
+            margin-left: 10px;
+            transition: background-color 0.3s ease;
         }
-        .btn:disabled {
-            background-color: #ddd;
+
+        .input-container button:hover {
+            background-color: #444;
         }
-        #chatLog {
-            width: 100%;
-            height: 200px;
-            border: 1px solid #ddd;
-            padding: 10px;
-            overflow-y: scroll;
-            background-color: #f9f9f9;
-            margin-top: 20px;
+
+        .hidden {
+            display: none;
         }
-        #messageInput {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            border: 1px solid #ddd;
+
+        .login-message {
+            color: #81a1c1;
+            margin-left: 10px;
+        }
+
+        .user-message {
+            color: #e4e4e4;
+        }
+
+        .server-message {
+            color: #888888;
+        }
+
+        .system-message {
+            color: #a3be8c;
+        }
+
+        .join-message {
+            color: #88c0d0;
+        }
+
+        .leave-message {
+            color: #bf616a;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .connected {
+            background-color: #a3be8c;
+            color: #2e3440;
+        }
+
+        .disconnected {
+            background-color: #bf616a;
+            color: #eceff4;
+        }
+
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .auth-container input {
+            padding: 8px;
+            background-color: #2d2d2d;
+            color: #e4e4e4;
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .auth-container button {
+            padding: 8px 15px;
+            background-color: #4c566a;
+            color: #e4e4e4;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .auth-container button:hover {
+            background-color: #5e81ac;
         }
     </style>
 </head>
+
 <body>
+    <div class="terminal">
+        <div class="connection-status disconnected" id="connection-status">Disconnected</div>
+        <div class="output" id="output">
+            <span class="login-message">Welcome to Piratchat! You need to register or login.</span>
+        </div>
+        
+        <div class="auth-container" id="auth-container">
+            <div>
+                <input type="text" id="username-input" placeholder="Username">
+                <button id="register-button">Register</button>
+            </div>
+            <div>
+                <input type="text" id="key-input" placeholder="Key">
+                <button id="login-button">Login</button>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Message..." autofocus>
+            <button id="send-button">Send</button>
+        </div>
+    </div>
 
-<h2>Session API Test</h2>
+    <script>
+        const outputElement = document.getElementById('output');
+        const inputElement = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const connectionStatusElement = document.getElementById('connection-status');
+        const usernameInput = document.getElementById('username-input');
+        const keyInput = document.getElementById('key-input');
+        const registerButton = document.getElementById('register-button');
+        const loginButton = document.getElementById('login-button');
+        const authContainer = document.getElementById('auth-container');
 
-<!-- Register Section -->
-<div>
-    <h3>Register</h3>
-    <input type="text" id="username" placeholder="Enter username" />
-    <button class="btn" id="registerBtn">Register</button>
-    <div id="registerResponse" class="response"></div>
-</div>
+        let socket;
+        let loggedIn = false;
+        let username = '';
+        const serverUrl = window.location.origin.replace(/^http/, 'ws') + "/ws";
+        const apiBaseUrl = window.location.origin;
 
-<!-- Login Section -->
-<div>
-    <h3>Login</h3>
-    <input type="text" id="key" placeholder="Enter registration key" />
-    <button class="btn" id="loginBtn">Login</button>
-    <div id="loginResponse" class="response"></div>
-</div>
-
-<!-- Logout Section -->
-<div>
-    <h3>Logout</h3>
-    <button class="btn" id="logoutBtn">Logout</button>
-    <div id="logoutResponse" class="response"></div>
-</div>
-
-<!-- WebSocket Section -->
-<div>
-    <h3>WebSocket Test</h3>
-    <button class="btn" id="connectWsBtn">Connect WebSocket</button>
-    <div id="wsResponse" class="response"></div>
-</div>
-
-<!-- Chat Section -->
-<div>
-    <h3>Chat</h3>
-    <div id="chatLog"></div>
-    <textarea id="messageInput" placeholder="Type a message"></textarea>
-    <button class="btn" id="sendMessageBtn" disabled>Send Message</button>
-</div>
-
-<script>
-    const apiUrl = 'http://127.0.0.1:8080';  // Replace with your server's URL if it's different
-    let sessionKey = null;
-    let ws = null;
-
-    // Register
-    document.getElementById('registerBtn').addEventListener('click', async () => {
-        const username = document.getElementById('username').value;
-        if (!username) {
-            alert('Please enter a username');
-            return;
-        }
-
-        const response = await fetch(`${apiUrl}/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
-        });
-
-        const result = await response.json();
-        if (response.status === 201) {
-            document.getElementById('registerResponse').textContent = `Success! Registration key: ${result.key}`;
-        } else {
-            document.getElementById('registerResponse').textContent = `Error: ${response.status}`;
-        }
-    });
-
-    // Login
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-        const key = document.getElementById('key').value;
-        if (!key) {
-            alert('Please enter a registration key');
-            return;
-        }
-
-        const response = await fetch(`${apiUrl}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key }),
-            credentials: 'include' // Ensure cookies are included with the request
-        });
-
-        if (response.status === 200) {
-            // Successfully logged in
-            document.getElementById('loginResponse').textContent = 'Login successful!';
-            sessionKey = document.cookie.split(';').find(cookie => cookie.trim().startsWith('session='));
-            if (sessionKey) {
-                sessionKey = sessionKey.split('=')[1];
+        function displayOutput(message, type = 'server') {
+            const p = document.createElement('p');
+            
+            switch (type) {
+                case 'user':
+                    p.classList.add('user-message');
+                    break;
+                case 'server':
+                    message = `[server] ${message}`;
+                    p.classList.add('server-message');
+                    break;
+                case 'system':
+                    p.classList.add('system-message');
+                    break;
+                case 'join':
+                    p.classList.add('join-message');
+                    message = `${message} has joined the chat.`;
+                    break;
+                case 'leave':
+                    p.classList.add('leave-message');
+                    message = `${message} has left the chat.`;
+                    break;
+                case 'chat':
+                    message = `<${message.author}> ${message.message}`;
+                    p.classList.add('user-message');
+                    break;
+                case 'self':
+                    message = `<You> ${message}`;
+                    p.classList.add('user-message');
+                    break;
+                case 'error':
+                    message = `[error] ${message}`;
+                    p.classList.add('leave-message');
+                    break;
             }
-        } else {
-            document.getElementById('loginResponse').textContent = `Error: ${response.status}`;
+            
+            p.textContent = message;
+            outputElement.appendChild(p);
+            outputElement.scrollTop = outputElement.scrollHeight;
         }
-    });
 
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        const response = await fetch(`${apiUrl}/logout`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include' // Include credentials to send cookies
+        async function register() {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                displayOutput("Please enter a username", "server");
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username })
+                });
+
+                // Check if response has content
+                const contentType = response.headers.get("content-type");
+                let data = {};
+                
+                if (contentType && contentType.indexOf("application/json") !== -1 && response.status !== 204) {
+                    try {
+                        data = await response.json();
+                    } catch (jsonError) {
+                        displayOutput(`Server returned invalid JSON: ${jsonError.message}`, "error");
+                        return;
+                    }
+                }
+
+                if (response.status === 201) {
+                    displayOutput(`Registration successful! Your key is: ${data.key || "No key provided"}`, "system");
+                    displayOutput("Save this key for future logins", "system");
+                    if (data.key) {
+                        keyInput.value = data.key;
+                    }
+                } else if (response.status === 409) {
+                    displayOutput("Username already taken. Try another one.", "server");
+                } else if (response.status === 422) {
+                    displayOutput("Invalid username format.", "server");
+                } else {
+                    displayOutput(`Registration failed with status: ${response.status}`, "server");
+                }
+            } catch (error) {
+                displayOutput(`Error during registration: ${error.message}`, "error");
+            }
+        }
+
+        async function login() {
+            const key = keyInput.value.trim();
+            if (!key) {
+                displayOutput("Please enter your key", "server");
+                return;
+            }
+
+            displayOutput("Attempting login...", "system");
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ key })
+                });
+
+                // Check if response is empty or not JSON
+                let data = {};
+                try {
+                    // Only try to parse as JSON if content exists and is JSON
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1 && response.status !== 204) {
+                        const text = await response.text();
+                        if (text) {
+                            data = JSON.parse(text);
+                        }
+                    }
+                } catch (jsonError) {
+                    displayOutput(`Failed to parse server response: ${jsonError.message}`, "error");
+                    // Continue with login flow using default values
+                }
+
+                if (response.status === 200) {
+                    username = data.username || 'You';
+                    loggedIn = true;
+                    displayOutput(`Login successful as ${username}!`, "system");
+                    authContainer.style.display = "none";
+                    connect();
+                } else if (response.status === 401) {
+                    displayOutput("Invalid key. Please try again.", "server");
+                } else if (response.status === 422) {
+                    displayOutput("Invalid key format.", "server");
+                } else if (response.status === 204) {
+                    // Handle No Content response
+                    username = 'You'; // Default value
+                    loggedIn = true;
+                    displayOutput("Login successful!", "system");
+                    authContainer.style.display = "none";
+                    connect();
+                } else {
+                    displayOutput(`Login failed with status: ${response.status}`, "server");
+                }
+            } catch (error) {
+                displayOutput(`Error during login: ${error.message}`, "error");
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${apiBaseUrl}/logout`, {
+                    method: 'POST'
+                });
+                
+                loggedIn = false;
+                if (socket) {
+                    socket.close();
+                }
+                
+                authContainer.style.display = "flex";
+                displayOutput("Logged out successfully", "system");
+                connectionStatusElement.textContent = "Disconnected";
+                connectionStatusElement.classList.remove("connected");
+                connectionStatusElement.classList.add("disconnected");
+            } catch (error) {
+                displayOutput(`Error during logout: ${error.message}`, "error");
+            }
+        }
+
+        function connect() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                return; // Already connected
+            }
+
+            try {
+                socket = new WebSocket(serverUrl);
+
+                socket.onopen = function() {
+                    connectionStatusElement.textContent = "Connected";
+                    connectionStatusElement.classList.remove("disconnected");
+                    connectionStatusElement.classList.add("connected");
+                    displayOutput("Connected to chat server", "system");
+                };
+
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        // Handle received messages
+                        if (data.message && data.author) {
+                            // Skip displaying messages from yourself since we already display them when sent
+                            if (data.author !== username) {
+                                displayOutput({ author: data.author, message: data.message }, "chat");
+                            }
+                        }
+                        // Handle join/leave events
+                        else if (data.event === "join" && data.username) {
+                            displayOutput(data.username, "join");
+                        }
+                        else if (data.event === "leave" && data.username) {
+                            displayOutput(data.username, "leave");
+                        }
+                    } catch (error) {
+                        displayOutput(`Error parsing message: ${error.message}`, "error");
+                    }
+                };
+
+                socket.onclose = function() {
+                    connectionStatusElement.textContent = "Disconnected";
+                    connectionStatusElement.classList.remove("connected");
+                    connectionStatusElement.classList.add("disconnected");
+                    
+                    // Only display the message if this wasn't a deliberate disconnect
+                    if (!socket.isDeliberateDisconnect) {
+                        displayOutput("Disconnected from chat server", "system");
+                    }
+                    
+                    // Reset the flag (in case we reconnect with the same socket object)
+                    socket.isDeliberateDisconnect = false;
+                };
+
+                socket.onerror = function(error) {
+                    displayOutput("WebSocket error occurred", "error");
+                };
+            } catch (error) {
+                displayOutput(`Failed to connect: ${error.message}`, "error");
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                // Set a flag to indicate we're deliberately disconnecting
+                socket.isDeliberateDisconnect = true;
+                socket.close();
+                connectionStatusElement.textContent = "Disconnected";
+                connectionStatusElement.classList.remove("connected");
+                connectionStatusElement.classList.add("disconnected");
+                displayOutput("Disconnected from chat server", "system");
+                // We're not logging out, just disconnecting
+            }
+        }
+
+        function reconnect() {
+            if (loggedIn) {
+                displayOutput("Reconnecting to chat server...", "system");
+                connect();
+            } else {
+                displayOutput("Please log in first", "server");
+            }
+        }
+
+        function sendMessage(message) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                // Display your own message immediately
+                displayOutput(message, "self");
+                
+                // Send the message to the server
+                socket.send(JSON.stringify({
+                    message: message
+                }));
+            } else {
+                displayOutput("Not connected to server", "system");
+                if (loggedIn) {
+                    displayOutput("Type /reconnect to reconnect to the server", "system");
+                }
+            }
+        }
+
+        function handleInput(input) {
+            const command = input.trim();
+
+            if (!loggedIn) {
+                if (command.toLowerCase() === '/help') {
+                    displayOutput("Use the register and login fields above to authenticate.", "server");
+                } else {
+                    displayOutput("Please register or login first.", "server");
+                }
+            } else {
+                if (command.toLowerCase() === '/help') {
+                    displayOutput("Available commands:\n/help - Show this help message\n/logout - Logout from the chat\n/leave - Disconnect from the server\n/reconnect - Reconnect to the server", "server");
+                } else if (command.toLowerCase() === '/logout') {
+                    logout();
+                } else if (command.toLowerCase() === '/leave') {
+                    disconnect();
+                } else if (command.toLowerCase() === '/reconnect') {
+                    reconnect();
+                } else {
+                    // Regular chat message - send to WebSocket
+                    sendMessage(command);
+                }
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', function () {
+            const userInput = inputElement.value.trim();
+            if (userInput) {
+                handleInput(userInput);
+                inputElement.value = '';
+            }
         });
 
-        if (response.status === 200) {
-            sessionKey = null;
-            document.getElementById('logoutResponse').textContent = 'Logout successful!';
-            ws.close(); // Close WebSocket connection on logout
-            ws = null;
-        } else {
-            document.getElementById('logoutResponse').textContent = `Error: ${response.status}`;
-        }
-    });
+        inputElement.addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const userInput = inputElement.value.trim();
+                if (userInput) {
+                    handleInput(userInput);
+                    inputElement.value = '';
+                }
+            }
+        });
 
-    // WebSocket Test
-    document.getElementById('connectWsBtn').addEventListener('click', () => {
-        if (!sessionKey) {
-            alert('You need to log in first');
-            return;
-        }
+        registerButton.addEventListener('click', register);
+        loginButton.addEventListener('click', login);
 
-        ws = new WebSocket(`ws://127.0.0.1:8080/ws`);
+        // Register enter key on input fields
+        usernameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                register();
+            }
+        });
 
-        ws.onopen = () => {
-            document.getElementById('wsResponse').textContent = 'WebSocket connected!';
-            document.getElementById('sendMessageBtn').disabled = false; // Enable sending messages
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            document.getElementById('chatLog').innerHTML += `<p><strong>${data.author}:</strong> ${data.message}</p>`;
-            document.getElementById('chatLog').scrollTop = document.getElementById('chatLog').scrollHeight; // Scroll to bottom
-        };
-
-        ws.onerror = (error) => {
-            document.getElementById('wsResponse').textContent = `WebSocket Error: ${error}`;
-        };
-
-        ws.onclose = () => {
-            document.getElementById('wsResponse').textContent = 'WebSocket connection closed.';
-        };
-    });
-
-    // Send message to WebSocket
-    document.getElementById('sendMessageBtn').addEventListener('click', () => {
-        const message = document.getElementById('messageInput').value;
-        if (message.trim()) {
-            ws.send(JSON.stringify({ message }));
-            document.getElementById('messageInput').value = ''; // Clear the input field
-        }
-    });
-</script>
-
+        keyInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
 </body>
+
 </html>
