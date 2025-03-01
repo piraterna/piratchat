@@ -23,19 +23,22 @@ class HTTPStatusCode(Enum):
 
 
 DB = Database("db.sqlite")
-SESSION_KEYS: list = []
-SESSION_EXPIRATION_TIME = timedelta(seconds=10)  # timedelta(hours=1)
+
+# {"key123": {"expiration_time": datetime.obj, "username": "johndoe"}}
+SESSIONS: dict = {}
+SESSION_EXPIRATION_TIME = timedelta(seconds=30)  # timedelta(hours=1)
 SESSION_ITERATION_DELAY_SECONDS: int = 1
 
 
 async def clean_expired_sessions():
     while True:
-        global SESSION_KEYS
-        SESSION_KEYS = [
-            (key, expiration_time)
-            for key, expiration_time in SESSION_KEYS
-            if expiration_time > datetime.now()
-        ]
+        global SESSIONS
+
+        for key, value in SESSIONS.copy().items():
+            if value["expiration_time"] < datetime.now():
+                print("popping:", key)
+                SESSIONS.pop(key, None)
+
         await asyncio.sleep(SESSION_ITERATION_DELAY_SECONDS)
 
 
@@ -84,11 +87,15 @@ async def login(request: web.Request) -> web.Response:
     if not user:
         return web.Response(status=HTTPStatusCode.UNAUTHORIZED.value)
 
+    db_index, username, hashed_key = user
+
     resp = web.Response(status=HTTPStatusCode.OK.value)
 
     session_key: str = await generate_session_key()
     expiration_time = datetime.now() + SESSION_EXPIRATION_TIME
-    SESSION_KEYS.append((session_key, expiration_time))
+
+    SESSIONS[session_key] = {"expiration_time": expiration_time, "username": username}
+
     resp.set_cookie(
         "session",
         session_key,
@@ -102,18 +109,27 @@ async def logout(request: web.Request) -> web.Response:
     print("Handling logout")
 
     session_key = request.cookies.get("session")
-
-    for i, (key, _) in enumerate(SESSION_KEYS):
-        if session_key == key:
-            print("Logging out session key:", session_key)
-            SESSION_KEYS.pop(i)
-            break
+    if session_key:
+        SESSIONS.pop(session_key, None)
 
     # stay mysterious?
-    return web.Response(status=200)
+    return web.Response(status=HTTPStatusCode.OK.value)
 
 
-async def wshandler(request: web.Request) -> web.WebSocketResponse:
+async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Response:
+    print("ws cookies:", request.cookies)
+    session_key = request.cookies.get("session")
+
+    if not session_key:
+        return web.Response(status=HTTPStatusCode.UNPROCESSABLE_ENTITY.value)
+
+    client = SESSIONS.get(session_key, None)
+    if not client:
+        return web.Response(status=HTTPStatusCode.UNAUTHORIZED.value)
+
+    print("Retrieved WS client object:", client)
+    print("Username:", client["username"])
+
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 

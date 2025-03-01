@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .response {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:disabled {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Session API Test</h2>
+
+<div>
+    <h3>Register</h3>
+    <input type="text" id="username" placeholder="Enter username" />
+    <button class="btn" id="registerBtn">Register</button>
+    <div id="registerResponse" class="response"></div>
+</div>
+
+<div>
+    <h3>Login</h3>
+    <input type="text" id="key" placeholder="Enter registration key" />
+    <button class="btn" id="loginBtn">Login</button>
+    <div id="loginResponse" class="response"></div>
+</div>
+
+<div>
+    <h3>Logout</h3>
+    <button class="btn" id="logoutBtn">Logout</button>
+    <div id="logoutResponse" class="response"></div>
+</div>
+
+<div>
+    <h3>WebSocket Test</h3>
+    <button class="btn" id="connectWsBtn">Connect WebSocket</button>
+    <div id="wsResponse" class="response"></div>
+</div>
+
+<script>
+    const apiUrl = 'http://127.0.0.1:8080';  // Replace with your server's URL if it's different
+    let sessionKey = null;
+
+    // Register
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+        const username = document.getElementById('username').value;
+        if (!username) {
+            alert('Please enter a username');
+            return;
+        }
+
+        const response = await fetch(`${apiUrl}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        const result = await response.json();
+        if (response.status === 201) {
+            document.getElementById('registerResponse').textContent = `Success! Registration key: ${result.key}`;
+        } else {
+            document.getElementById('registerResponse').textContent = `Error: ${response.status}`;
+        }
+    });
+
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const key = document.getElementById('key').value;
+        if (!key) {
+            alert('Please enter a registration key');
+            return;
+        }
+
+        const response = await fetch(`${apiUrl}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key }),
+            credentials: 'include' // Ensure cookies are included with the request
+        });
+
+        if (response.status === 200) {
+            // Successfully logged in
+            document.getElementById('loginResponse').textContent = 'Login successful!';
+            sessionKey = document.cookie.split(';').find(cookie => cookie.trim().startsWith('session='));
+            if (sessionKey) {
+                sessionKey = sessionKey.split('=')[1];
+            }
+        } else {
+            document.getElementById('loginResponse').textContent = `Error: ${response.status}`;
+        }
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        const response = await fetch(`${apiUrl}/logout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include' // Include credentials to send cookies
+        });
+
+        if (response.status === 200) {
+            sessionKey = null;
+            document.getElementById('logoutResponse').textContent = 'Logout successful!';
+        } else {
+            document.getElementById('logoutResponse').textContent = `Error: ${response.status}`;
+        }
+    });
+
+    // WebSocket Test
+    document.getElementById('connectWsBtn').addEventListener('click', () => {
+        if (!sessionKey) {
+            alert('You need to log in first');
+            return;
+        }
+
+        const ws = new WebSocket(`ws://127.0.0.1:8080/ws`);
+
+        ws.onopen = () => {
+            ws.send('hello');
+            document.getElementById('wsResponse').textContent = 'WebSocket connected!';
+        };
+
+        ws.onmessage = (event) => {
+            document.getElementById('wsResponse').textContent = `Received: ${event.data}`;
+        };
+
+        ws.onerror = (error) => {
+            document.getElementById('wsResponse').textContent = `WebSocket Error: ${error}`;
+        };
+
+        ws.onclose = () => {
+            document.getElementById('wsResponse').textContent = 'WebSocket connection closed.';
+        };
+    });
+</script>
+
+</body>
+</html>
