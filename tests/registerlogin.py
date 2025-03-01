@@ -18,6 +18,7 @@ if __name__ == "__main__":
         # login
         r = requests.post("http://0.0.0.0:8080/login", json={"key": key})
         print(r.status_code, r.text)
+        print("cookies:", r.cookies)
 
         if r.status_code == 200:
             print("registered & logged in!")
