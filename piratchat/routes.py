@@ -29,6 +29,8 @@ SESSIONS: dict = {}
 SESSION_EXPIRATION_TIME = timedelta(seconds=30)  # timedelta(hours=1)
 SESSION_ITERATION_DELAY_SECONDS: int = 1
 
+WS_CLIENTS: dict = {}
+
 
 async def clean_expired_sessions():
     while True:
@@ -133,12 +135,36 @@ async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Respons
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
+    WS_CLIENTS[session_key] = ws
+
     async for msg in ws:
         print("ws data:", msg.data)
         if msg.type == aiohttp.WSMsgType.TEXT:
-            await ws.send_str("hello world")
+            data: dict = json.loads(msg.data)
+
+            # expect only one field: message
+            message: str = data.get("message")
+            if not message or len(data.items()) != 1:
+                print("malformed ws data")
+                break
+
+            print(f"Received message: {message} from {client['username']}")
+            forwarded: str = json.dumps(
+                {"message": message, "author": client["username"]}
+            )
+            print("forwarded data:", forwarded)
+            print("forwarding data to: ", WS_CLIENTS.values())
+
+            # forward the message
+            for ws_client in WS_CLIENTS.values():
+                print("wsclient:", ws_client)
+                if ws_client != ws:
+                    await ws_client.send_str(forwarded)
+
         elif msg.type == aiohttp.WSMsgType.ERROR:
             print(f"websocket connection closed with exception {ws.exception()}")
 
     print("websocket connection closed")
+
+    WS_CLIENTS.pop(session_key, None)
     return ws
