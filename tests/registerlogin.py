@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     USERNAME = sys.argv[1]
 
-    # register
+    print("** registering up")
     r = requests.post("http://0.0.0.0:8080/register", json={"username": USERNAME})
     print(r.status_code, r.text)
 
@@ -15,10 +15,14 @@ if __name__ == "__main__":
         key = r.json()["key"]
         print(key)
 
-        # login
+        print("** logging in")
         r = requests.post("http://0.0.0.0:8080/login", json={"key": key})
         print(r.status_code, r.text)
         print("cookies:", r.cookies)
 
         if r.status_code == 200:
             print("registered & logged in!")
+
+            print("** logging out")
+            r = requests.get("http://0.0.0.0:8080/logout", cookies=r.cookies)
+            print(r.status_code)

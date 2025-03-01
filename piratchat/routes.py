@@ -98,6 +98,21 @@ async def login(request: web.Request) -> web.Response:
     return resp
 
 
+async def logout(request: web.Request) -> web.Response:
+    print("Handling logout")
+
+    session_key = request.cookies.get("session")
+
+    for i, (key, _) in enumerate(SESSION_KEYS):
+        if session_key == key:
+            print("Logging out session key:", session_key)
+            SESSION_KEYS.pop(i)
+            break
+
+    # stay mysterious?
+    return web.Response(status=200)
+
+
 async def wshandler(request: web.Request) -> web.WebSocketResponse:
     ws = web.WebSocketResponse()
     await ws.prepare(request)
