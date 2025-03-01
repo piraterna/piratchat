@@ -180,6 +180,6 @@ async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Respons
         {"event": "leave", "username": client["username"]}
     )
     for ws_client in WS_CLIENTS.values():
-        await ws_client.send_str(join_announcement)
+        await ws_client.send_str(leave_announcement)
 
     return ws
