@@ -135,6 +135,13 @@ async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Respons
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
+    # announce the join
+    join_announcement: str = json.dumps(
+        {"event": "join", "username": client["username"]}
+    )
+    for ws_client in WS_CLIENTS.values():
+        await ws_client.send_str(join_announcement)
+
     WS_CLIENTS[session_key] = ws
 
     async for msg in ws:
@@ -167,4 +174,12 @@ async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Respons
     print("websocket connection closed")
 
     WS_CLIENTS.pop(session_key, None)
+
+    # announce the leave
+    leave_announcement: str = json.dumps(
+        {"event": "leave", "username": client["username"]}
+    )
+    for ws_client in WS_CLIENTS.values():
+        await ws_client.send_str(join_announcement)
+
     return ws
