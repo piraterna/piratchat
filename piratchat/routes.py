@@ -3,6 +3,20 @@ from aiohttp import web
 import json
 from database import Database
 
+from enum import Enum
+
+
+class HTTPStatusCode(Enum):
+    OK = 200
+    CREATED = 201
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    CONFLICT = 409
+    UNPROCESSABLE_ENTITY = 422
+    INTERNAL_SERVER_ERROR = 500
+
+
 db = Database("db.sqlite")
 
 
@@ -13,18 +27,18 @@ async def register(request: web.Request) -> web.Response:
     # check if we have only one field - username
     username: str = json.get("username")
     if not username or len(json.items()) != 1:
-        return web.Response(status=400)
+        return web.Response(status=HTTPStatusCode.UNPROCESSABLE_ENTITY.value)
 
     print("queried username:", username)
 
     # check if username is occupied in database
     if await db.get_by_username(username):
-        return web.json_response({"error": "Username taken"}, status=400)
+        return web.Response(status=HTTPStatusCode.CONFLICT.value)
 
     key = await db.add_username(username)
     print(key)
 
-    return web.json_response({"key": key}, status=201)
+    return web.json_response({"key": key}, status=HTTPStatusCode.CREATED.value)
 
 
 async def login(request: web.Request) -> web.Response:
@@ -33,16 +47,16 @@ async def login(request: web.Request) -> web.Response:
 
     key: str = json.get("key")
     if not key or len(json.items()) != 1:
-        return web.Response(status=400)
+        return web.Response(status=HTTPStatusCode.UNPROCESSABLE_ENTITY.value)
 
     user = await db.get_by_key(key)
     print("user:", user)
 
     if not user:
-        return web.Response(status=401)
+        return web.Response(status=HTTPStatusCode.UNAUTHORIZED.value)
 
     # TODO: make a session key and set cookies to response
-    return web.Response(status=200)
+    return web.Response(status=HTTPStatusCode.OK.value)
 
 
 async def wshandler(request: web.Request) -> web.WebSocketResponse:
