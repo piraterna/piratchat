@@ -16,4 +16,4 @@ app.add_routes(
 app.on_startup.append(lambda app: handle_sessions())
 
 if __name__ == "__main__":
-    web.run_app(app, host='0.0.0.0', port=7777)
+    web.run_app(app, host="0.0.0.0", port=7777)

@@ -197,10 +197,12 @@
         let socket;
         let loggedIn = false;
         let username = '';
+
         // const serverUrl = window.location.origin.replace(/^http/, 'ws') + "/ws";
         // const apiBaseUrl = window.location.origin;
-	const serverUrl = "wss://chat.piraterna.org:8888/ws";
-	const apiBaseUrl = "https://chat.piraterna.org:8888";
+
+        const serverUrl = "wss://chat.piraterna.org:8888/ws";
+        const apiBaseUrl = "https://chat.piraterna.org:8888";
 
         function displayOutput(message, type = 'server') {
             const p = document.createElement('p');
@@ -306,7 +308,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ key }),
-		    credentials: 'include'
+		            credentials: 'include'
                 });
 
                 // Check if response is empty or not JSON
@@ -377,8 +379,6 @@
             }
 
             try {
-		console.log(serverUrl);
-		console.log(document.cookie);
                 socket = new WebSocket(serverUrl);
 
                 socket.onopen = function() {
