@@ -1,8 +1,12 @@
 import requests
-
-USERNAME = "test0"
+import sys
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        exit(1)
+
+    USERNAME = sys.argv[1]
+
     # register
     r = requests.post("http://0.0.0.0:8080/register", json={"username": USERNAME})
     print(r.status_code, r.text)
