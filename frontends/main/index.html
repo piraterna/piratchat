@@ -28,9 +28,82 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 15px;
             overflow: hidden;
             background-color: #1e1e1e;
+            color: #e4e4e4;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .members-list {
+            width: 180px;
+            padding: 10px;
+            background-color: #252525;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .members-list.mobile-hidden {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            z-index: 10;
+        }
+
+        .members-toggle {
+            display: none;
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background-color: #333;
+            color: #e4e4e4;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 12px;
+            transition: background-color 0.3s ease;
+        }
+
+        .members-toggle:hover {
+            background-color: #444;
+        }
+
+        .members-header {
+            font-size: 14px;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #444;
+            color: #88c0d0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .members-close {
+            cursor: pointer;
+            display: none;
+            font-weight: bold;
+        }
+
+        .members-count {
+            font-size: 12px;
+            color: #a3be8c;
+            margin-left: 5px;
+        }
+
+        .member {
+            font-size: 14px;
+            padding: 3px 0;
             color: #e4e4e4;
         }
 
@@ -156,27 +229,106 @@
         .auth-container button:hover {
             background-color: #5e81ac;
         }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .terminal {
+                padding: 10px;
+            }
+
+            .members-list {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                transform: translateX(-100%);
+                z-index: 10;
+                width: 70%;
+                max-width: 250px;
+                box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+            }
+
+            .members-list.mobile-shown {
+                transform: translateX(0);
+            }
+
+            .members-toggle {
+                display: block;
+            }
+
+            .members-close {
+                display: block;
+            }
+
+            .auth-container {
+                padding: 10px;
+            }
+
+            .auth-container>div {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .auth-container input,
+            .auth-container button {
+                width: 100%;
+            }
+
+            .input-container {
+                padding-top: 5px;
+            }
+
+            .input-container input {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .input-container button {
+                padding: 10px;
+                margin-left: 5px;
+            }
+        }
+
+        .gray {
+            color: #555;
+        }
     </style>
 </head>
 
 <body>
     <div class="terminal">
         <div class="connection-status disconnected" id="connection-status">Disconnected</div>
-        <div class="output" id="output">
-            <span class="login-message">Welcome to Piratchat! You need to register or login.</span>
-        </div>
-        
+
         <div class="auth-container" id="auth-container">
             <div>
                 <input type="text" id="username-input" placeholder="Username">
                 <button id="register-button">Register</button>
             </div>
             <div>
-                <input type="text" id="key-input" placeholder="Key">
+                <input type="password" id="key-input" placeholder="Key">
                 <button id="login-button">Login</button>
             </div>
         </div>
-        
+
+        <button class="members-toggle" id="members-toggle">Show Users</button>
+
+        <div class="chat-container">
+            <div class="members-list" id="members-list">
+                <div class="members-header">
+                    <span>Online Users <span class="members-count" id="members-count">(0)</span></span>
+                    <span class="members-close" id="members-close">×</span>
+                </div>
+                <div id="members-container">
+                    <div class="member gray">Not Online</div>
+                </div>
+            </div>
+
+            <div class="output" id="output">
+                <span class="login-message">Welcome to Piratchat! You need to register or login.</span>
+            </div>
+        </div>
+
         <div class="input-container">
             <input type="text" id="user-input" placeholder="Message..." autofocus>
             <button id="send-button">Send</button>
@@ -193,26 +345,102 @@
         const registerButton = document.getElementById('register-button');
         const loginButton = document.getElementById('login-button');
         const authContainer = document.getElementById('auth-container');
+        const membersContainer = document.getElementById('members-container');
+        const membersCount = document.getElementById('members-count');
+        const membersList = document.getElementById('members-list');
+        const membersToggle = document.getElementById('members-toggle');
+        const membersClose = document.getElementById('members-close');
 
         let socket;
         let loggedIn = false;
         let username = '';
+        let onlineMembers = [];
+        let isMobile = window.innerWidth <= 768;
 
-        // const serverUrl = window.location.origin.replace(/^http/, 'ws') + "/ws";
-        // const apiBaseUrl = window.location.origin;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.port = '8888';
 
-        const serverUrl = "wss://chat.piraterna.org:8888/ws";
-        const apiBaseUrl = "https://chat.piraterna.org:8888";
+        const serverUrl = currentUrl.origin.replace(/^http/, 'ws') + "/ws";
+        const apiBaseUrl = currentUrl.origin;
 
-        function displayOutput(message, type = 'server') {
+        // Initialize mobile view
+        function initMobileView() {
+            if (isMobile) {
+                membersList.classList.add('mobile-hidden');
+            } else {
+                membersList.classList.remove('mobile-hidden');
+                membersList.classList.remove('mobile-shown');
+            }
+        }
+
+        // Call once on load
+        initMobileView();
+
+        // Update on resize
+        window.addEventListener('resize', function () {
+            isMobile = window.innerWidth <= 768;
+            initMobileView();
+        });
+
+        // Toggle members list for mobile
+        membersToggle.addEventListener('click', function () {
+            if (isMobile) {
+                membersList.classList.add('mobile-shown');
+            }
+        });
+
+        // Close members list for mobile
+        membersClose.addEventListener('click', function () {
+            if (isMobile) {
+                membersList.classList.remove('mobile-shown');
+            }
+        });
+
+        // get username
+        async function getUsername() {
+            const response = await fetch("https://chat.piraterna.org:8888/user/@me", {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await response.json();
+            const username = data.username;
+            return username;
+        }
+
+        const commands = [
+            { command_name: 'img', callback: get_image }, // $img(https://ftp.piraterna.org/media/images/piraterna.png), example
+        ];
+
+        function cleanMessage(message) {
+            const commandPattern = /\$(\w+)\((.*?)\)/g;
+            let match;
+            let final = message;
+            while ((match = commandPattern.exec(final)) !== null) {
+                const [fullMatch, commandName, args] = match;
+                final = final.replace(fullMatch, '');
+            }
+
+            return final;
+        }
+
+        async function displayOutput(message, type = 'server') {
             const p = document.createElement('p');
-            
+            let temp = typeof message === 'object' ? message.message || '' : message;
+            let finalMessage = cleanMessage(temp);
+
+            let you = "You";
+
+            if (type === 'self') {
+                you = await getUsername();
+                // console.log(you);
+            }
+
             switch (type) {
                 case 'user':
                     p.classList.add('user-message');
                     break;
                 case 'server':
-                    message = `[server] ${message}`;
+                    finalMessage = `[server] ${finalMessage}`;
                     p.classList.add('server-message');
                     break;
                 case 'system':
@@ -220,29 +448,100 @@
                     break;
                 case 'join':
                     p.classList.add('join-message');
-                    message = `${message} has joined the chat.`;
+                    finalMessage = `${finalMessage} has joined the chat.`;
                     break;
                 case 'leave':
                     p.classList.add('leave-message');
-                    message = `${message} has left the chat.`;
+                    finalMessage = `${finalMessage} has left the chat.`;
                     break;
                 case 'chat':
-                    message = `<${message.author}> ${message.message}`;
+                    finalMessage = `<${message.author}> ${finalMessage}`;
                     p.classList.add('user-message');
                     break;
                 case 'self':
-                    message = `<You> ${message}`;
+                    finalMessage = `<${you}> ${finalMessage}`;
                     p.classList.add('user-message');
                     break;
                 case 'error':
-                    message = `[error] ${message}`;
+                    finalMessage = `[error] ${finalMessage}`;
                     p.classList.add('leave-message');
                     break;
             }
-            
-            p.textContent = message;
+
+            p.textContent = finalMessage;
             outputElement.appendChild(p);
+
+            await handleCommands(temp);
+
             outputElement.scrollTop = outputElement.scrollHeight;
+        }
+
+        async function handleCommands(message) {
+            const commandPattern = /\$(\w+)\((.*?)\)/g;
+            let match;
+            while ((match = commandPattern.exec(message)) !== null) {
+                const [fullMatch, commandName, args] = match;
+                const command = commands.find(cmd => cmd.command_name === commandName);
+
+                if (command) {
+                    const parsedArgs = args.split(',').map(arg => arg.trim());
+                    await command.callback(parsedArgs);
+                    message = message.replace(fullMatch, '');
+                }
+            }
+        }
+
+        async function get_image(args) {
+            const [url] = args;
+            const img = document.createElement('img');
+            img.src = url;
+            img.style.maxWidth = '50%';
+            img.style.height = 'auto';
+            img.style.display = 'block';
+            img.style.margin = '10px 0';
+            outputElement.appendChild(img);
+        }
+
+        function updateMembersList(members) {
+            // Update the online members array
+            onlineMembers = members;
+
+            // Clear the current list
+            membersContainer.innerHTML = '';
+
+            // Update member count
+            membersCount.textContent = `(${members.length})`;
+
+            // Add each member to the list
+            members.forEach(member => {
+                const memberElement = document.createElement('div');
+                memberElement.className = 'member';
+                memberElement.textContent = member;
+                membersContainer.appendChild(memberElement);
+            });
+
+            // Update the toggle button text
+            membersToggle.textContent = `Users (${members.length})`;
+        }
+
+        async function fetchOnlineMembers() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/online`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.online_clients) {
+                        updateMembersList(data.online_clients);
+                    }
+                } else {
+                    displayOutput(`Failed to fetch online members: ${response.status}`, "error");
+                }
+            } catch (error) {
+                displayOutput(`Error fetching online members: ${error.message}`, "error");
+            }
         }
 
         async function register() {
@@ -264,7 +563,7 @@
                 // Check if response has content
                 const contentType = response.headers.get("content-type");
                 let data = {};
-                
+
                 if (contentType && contentType.indexOf("application/json") !== -1 && response.status !== 204) {
                     try {
                         data = await response.json();
@@ -300,7 +599,7 @@
             }
 
             displayOutput("Attempting login...", "system");
-            
+
             try {
                 const response = await fetch(`${apiBaseUrl}/login`, {
                     method: 'POST',
@@ -308,7 +607,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ key }),
-		            credentials: 'include'
+                    credentials: 'include'
                 });
 
                 // Check if response is empty or not JSON
@@ -333,6 +632,7 @@
                     displayOutput(`Login successful as ${username}!`, "system");
                     authContainer.style.display = "none";
                     connect();
+                    fetchOnlineMembers(); // Fetch online members list upon successful login
                 } else if (response.status === 401) {
                     displayOutput("Invalid key. Please try again.", "server");
                 } else if (response.status === 422) {
@@ -344,6 +644,7 @@
                     displayOutput("Login successful!", "system");
                     authContainer.style.display = "none";
                     connect();
+                    fetchOnlineMembers(); // Fetch online members list upon successful login
                 } else {
                     displayOutput(`Login failed with status: ${response.status}`, "server");
                 }
@@ -358,17 +659,20 @@
                     method: 'GET',
                     credentials: 'include'
                 });
-                
+
                 loggedIn = false;
                 if (socket) {
                     socket.close();
                 }
-                
+
                 authContainer.style.display = "flex";
                 displayOutput("Logged out successfully", "system");
                 connectionStatusElement.textContent = "Disconnected";
                 connectionStatusElement.classList.remove("connected");
                 connectionStatusElement.classList.add("disconnected");
+
+                // Clear the members list
+                updateMembersList([]);
             } catch (error) {
                 displayOutput(`Error during logout: ${error.message}`, "error");
             }
@@ -382,17 +686,20 @@
             try {
                 socket = new WebSocket(serverUrl);
 
-                socket.onopen = function() {
+                socket.onopen = function () {
                     connectionStatusElement.textContent = "Connected";
                     connectionStatusElement.classList.remove("disconnected");
                     connectionStatusElement.classList.add("connected");
                     displayOutput("Connected to chat server", "system");
+
+                    // Fetch online members immediately when connected
+                    fetchOnlineMembers();
                 };
 
-                socket.onmessage = function(event) {
+                socket.onmessage = function (event) {
                     try {
                         const data = JSON.parse(event.data);
-                        
+
                         // Handle received messages
                         if (data.message && data.author) {
                             // Skip displaying messages from yourself since we already display them when sent
@@ -403,30 +710,34 @@
                         // Handle join/leave events
                         else if (data.event === "join" && data.username) {
                             displayOutput(data.username, "join");
+                            // Refresh online members on join event
+                            fetchOnlineMembers();
                         }
                         else if (data.event === "leave" && data.username) {
                             displayOutput(data.username, "leave");
+                            // Refresh online members on leave event
+                            fetchOnlineMembers();
                         }
                     } catch (error) {
                         displayOutput(`Error parsing message: ${error.message}`, "error");
                     }
                 };
 
-                socket.onclose = function() {
+                socket.onclose = function () {
                     connectionStatusElement.textContent = "Disconnected";
                     connectionStatusElement.classList.remove("connected");
                     connectionStatusElement.classList.add("disconnected");
-                    
+
                     // Only display the message if this wasn't a deliberate disconnect
                     if (!socket.isDeliberateDisconnect) {
                         displayOutput("Disconnected from chat server", "system");
                     }
-                    
+
                     // Reset the flag (in case we reconnect with the same socket object)
                     socket.isDeliberateDisconnect = false;
                 };
 
-                socket.onerror = function(error) {
+                socket.onerror = function (error) {
                     displayOutput("WebSocket error occurred", "error");
                 };
             } catch (error) {
@@ -444,6 +755,9 @@
                 connectionStatusElement.classList.add("disconnected");
                 displayOutput("Disconnected from chat server", "system");
                 // We're not logging out, just disconnecting
+
+                // Clear the members list
+                updateMembersList([]);
             }
         }
 
@@ -460,7 +774,7 @@
             if (socket && socket.readyState === WebSocket.OPEN) {
                 // Display your own message immediately
                 displayOutput(message, "self");
-                
+
                 // Send the message to the server
                 socket.send(JSON.stringify({
                     message: message
@@ -484,13 +798,24 @@
                 }
             } else {
                 if (command.toLowerCase() === '/help') {
-                    displayOutput("Available commands:\n/help - Show this help message\n/logout - Logout from the chat\n/leave - Disconnect from the server\n/reconnect - Reconnect to the server", "server");
+                    displayOutput("Available commands:\n/help - Show this help message\n/logout - Logout from the chat\n/leave - Disconnect from the server\n/reconnect - Reconnect to the server\n/online - Refresh online users list\n/users - Toggle users list (mobile)", "server");
                 } else if (command.toLowerCase() === '/logout') {
                     logout();
                 } else if (command.toLowerCase() === '/leave') {
                     disconnect();
                 } else if (command.toLowerCase() === '/reconnect') {
                     reconnect();
+                } else if (command.toLowerCase() === '/online') {
+                    fetchOnlineMembers();
+                    displayOutput("Refreshing online users list...", "system");
+                } else if (command.toLowerCase() === '/users') {
+                    if (isMobile) {
+                        if (membersList.classList.contains('mobile-shown')) {
+                            membersList.classList.remove('mobile-shown');
+                        } else {
+                            membersList.classList.add('mobile-shown');
+                        }
+                    }
                 } else {
                     // Regular chat message - send to WebSocket
                     sendMessage(command);
@@ -518,19 +843,52 @@
             }
         });
 
+        document.getElementById('user-input').addEventListener('paste', (event) => {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const blob = item.getAsFile();
+                    const url = URL.createObjectURL(blob);
+
+                    const imgTag = `$img(${url})`;
+
+                    const inputField = document.getElementById('user-input');
+                    inputField.value += imgTag;
+                }
+            }
+        });
+
         registerButton.addEventListener('click', register);
         loginButton.addEventListener('click', login);
 
         // Register enter key on input fields
-        usernameInput.addEventListener('keypress', function(event) {
+        usernameInput.addEventListener('keypress', function (event) {
             if (event.key === 'Enter') {
                 register();
             }
         });
 
-        keyInput.addEventListener('keypress', function(event) {
+        keyInput.addEventListener('keypress', function (event) {
             if (event.key === 'Enter') {
                 login();
+            }
+        });
+
+        // Set up periodic refresh of online users (every 30 seconds)
+        setInterval(() => {
+            if (loggedIn && socket && socket.readyState === WebSocket.OPEN) {
+                fetchOnlineMembers();
+            }
+        }, 30000);
+
+        // Close members panel when clicking outside (for mobile)
+        document.addEventListener('click', function (event) {
+            if (isMobile &&
+                membersList.classList.contains('mobile-shown') &&
+                !membersList.contains(event.target) &&
+                event.target !== membersToggle) {
+                membersList.classList.remove('mobile-shown');
             }
         });
     </script>
