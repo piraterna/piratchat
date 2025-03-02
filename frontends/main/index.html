@@ -5,6 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Piratchat</title>
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Piratchat">
+    <meta property="og:description" content="Join our conversations today!">
+    <meta property="og:image" content="https://ftp.piraterna.org/media/images/piraterna.png">
+    <meta property="og:url" content="https://chat.piraterna.org">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:title" content="Piratchat">
+    <meta name="twitter:description" content="Join our conversations today!">
+    <meta name="twitter:image" content="https://ftp.piraterna.org/media/images/piraterna.png">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="icon" href="https://ftp.piraterna.org/media/images/piraterna.png" type="image/png">
+
     <style>
         * {
             box-sizing: border-box;
@@ -293,6 +309,10 @@
         .gray {
             color: #555;
         }
+
+        a {
+            color: #81a1c1;
+        }
     </style>
 </head>
 
@@ -330,7 +350,7 @@
         </div>
 
         <div class="input-container">
-            <input type="text" id="user-input" placeholder="Message..." autofocus>
+            <input type="text" id="user-input" placeholder="Message..." autocomplete="false" autofocus>
             <button id="send-button">Send</button>
         </div>
     </div>
@@ -362,6 +382,10 @@
 
         const serverUrl = currentUrl.origin.replace(/^http/, 'ws') + "/ws";
         const apiBaseUrl = currentUrl.origin;
+
+        let isInWindow = true;
+
+        var notificationAudio = new Audio("notify.mp3");
 
         // Initialize mobile view
         function initMobileView() {
@@ -413,8 +437,11 @@
 
         function cleanMessage(message) {
             const commandPattern = /\$(\w+)\((.*?)\)/g;
+            const urlPattern = /(https?:\/\/[^\s]+)/g; // Pattern to detect URLs
             let match;
             let final = message;
+
+            // Replace commands
             while ((match = commandPattern.exec(final)) !== null) {
                 const [fullMatch, commandName, args] = match;
                 final = final.replace(fullMatch, '');
@@ -423,16 +450,23 @@
             return final;
         }
 
+        function createLinkFromUrl(url) {
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.target = '_blank';
+            anchor.textContent = url;
+            return anchor;
+        }
+
         async function displayOutput(message, type = 'server') {
             const p = document.createElement('p');
             let temp = typeof message === 'object' ? message.message || '' : message;
             let finalMessage = cleanMessage(temp);
 
-            let you = "You";
-
-            if (type === 'self') {
-                you = await getUsername();
-                // console.log(you);
+            const pingPattern = new RegExp(`@${username}\\b`, 'g');
+            let highlightMessage = false;
+            if (pingPattern.test(finalMessage)) {
+                highlightMessage = true;
             }
 
             switch (type) {
@@ -459,7 +493,7 @@
                     p.classList.add('user-message');
                     break;
                 case 'self':
-                    finalMessage = `<${you}> ${finalMessage}`;
+                    finalMessage = `<${username}> ${finalMessage}`;
                     p.classList.add('user-message');
                     break;
                 case 'error':
@@ -468,7 +502,33 @@
                     break;
             }
 
-            p.textContent = finalMessage;
+            // Detect and replace URLs with <a> tags
+            const urlPattern = /(https?:\/\/[^\s]+)/g;
+            let match;
+            let messageNode = document.createDocumentFragment(); // to safely append multiple nodes
+
+            while ((match = urlPattern.exec(finalMessage)) !== null) {
+                const [url] = match;
+                // Split the message into parts, with the URL being replaced by a link
+                const beforeUrl = finalMessage.slice(0, match.index);
+                const afterUrl = finalMessage.slice(match.index + url.length);
+
+                // Append the before part, the link, and the after part
+                messageNode.appendChild(document.createTextNode(beforeUrl));
+                messageNode.appendChild(createLinkFromUrl(url));
+                finalMessage = afterUrl;
+            }
+
+            // Append any remaining message text that isn't a URL
+            if (finalMessage.length > 0) {
+                messageNode.appendChild(document.createTextNode(finalMessage));
+            }
+
+            if (highlightMessage) {
+                p.style.backgroundColor = "#333333";
+            }
+
+            p.appendChild(messageNode); // Use document fragment to append
             outputElement.appendChild(p);
 
             await handleCommands(temp);
@@ -496,6 +556,7 @@
             const img = document.createElement('img');
             img.src = url;
             img.style.maxWidth = '50%';
+            img.style.maxHeight = '250px';
             img.style.height = 'auto';
             img.style.display = 'block';
             img.style.margin = '10px 0';
@@ -627,7 +688,8 @@
                 }
 
                 if (response.status === 200) {
-                    username = data.username || 'You';
+                    // username = data.username || 'You';
+                    username = await getUsername();
                     loggedIn = true;
                     displayOutput(`Login successful as ${username}!`, "system");
                     authContainer.style.display = "none";
@@ -704,6 +766,13 @@
                         if (data.message && data.author) {
                             // Skip displaying messages from yourself since we already display them when sent
                             if (data.author !== username) {
+                                if (!isInWindow) {
+                                    document.title = "Piratchat (Unread Messages)";
+                                } else {
+                                    document.title = "Piratchat";
+                                }
+
+                                notificationAudio.play();
                                 displayOutput({ author: data.author, message: data.message }, "chat");
                             }
                         }
@@ -889,6 +958,16 @@
                 !membersList.contains(event.target) &&
                 event.target !== membersToggle) {
                 membersList.classList.remove('mobile-shown');
+            }
+        });
+
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") {
+                isInWindow = true;
+                document.title = "Piratchat"
+            } else {
+                isInWindow = false;
             }
         });
     </script>
