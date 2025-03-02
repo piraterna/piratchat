@@ -355,7 +355,8 @@
         async function logout() {
             try {
                 await fetch(`${apiBaseUrl}/logout`, {
-                    method: 'POST'
+                    method: 'GET',
+                    credentials: 'include'
                 });
                 
                 loggedIn = false;
