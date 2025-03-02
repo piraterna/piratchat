@@ -102,6 +102,27 @@ Connect to the WebSocket server for real-time messaging.
 }
 ```
 
+**Acknowledgment Format:**
+When a message is sent by a client, the server sends an acknowledgment back to the sender:
+
+**Success Acknowledgment:**
+```json
+{
+  "status": true
+}
+```
+
+**Error Acknowledgment:**
+```json
+{
+  "status": false,
+  "code": "message_too_long"
+}
+```
+
+Possible error codes:
+- `message_too_long`: Message exceeds the 300 character limit
+
 **Event Format:**
 ```json
 {
@@ -132,7 +153,7 @@ The application uses SQLite to store user information:
 
 1. Ensure you have the required dependencies installed:
    ```
-   pip3 install -r requirements.py
+   pip3 install -r requirements.txt 
    ```
 
 2. Start the server:
@@ -142,9 +163,56 @@ The application uses SQLite to store user information:
 
 3. The server will start on `0.0.0.0:7777`
 
+### Production Deployment
+
+For production deployment, the application should be run with SSL/TLS certificates to ensure secure communication:
+
+1. **Using with Nginx as a Reverse Proxy (Recommended)**:
+   
+   The production service at `chat.piraterna.org` is proxied using Nginx which handles the SSL/TLS termination. This setup allows:
+   - Proper SSL/TLS certificate management
+   - WebSocket protocol upgrade handling
+   - Additional security headers
+   - Load balancing if needed
+
+   Example Nginx configuration for WebSocket proxying:
+   ```nginx
+   server {
+       listen 443 ssl;
+       server_name chat.piraterna.org;
+
+       ssl_certificate /path/to/certificate.crt;
+       ssl_certificate_key /path/to/private.key;
+
+       location / {
+           proxy_pass http://localhost:7777;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection "upgrade";
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+
+2. **Direct SSL Configuration**:
+   
+   Alternatively, the application can be run with SSL directly:
+   ```python
+   ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+   ssl_context.load_cert_chain('certificate.crt', 'private.key')
+   web.run_app(app, host="0.0.0.0", port=7777, ssl_context=ssl_context)
+   ```
+
+   This requires modifying the `main.py` file to include SSL context configuration.
+
 ## Security Considerations
 
 - Username validation ensures only alphanumeric characters are accepted
 - Session keys are cryptographically secure 32-character strings
 - Inactive sessions are automatically expired and cleaned up
 - WebSocket connections are properly closed during server shutdown
+- **SSL/TLS encryption** is essential in production to secure data transmission
+- CORS headers should be configured appropriately in production
