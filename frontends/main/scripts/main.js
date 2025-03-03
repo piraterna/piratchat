@@ -630,7 +630,7 @@ function initializeApp() {
     Members.setupPeriodicRefresh();
 
     // inject my propaganda
-    console.log("=== Frontend written by Kevin <kevin@piraterna.org> and backend by Splexas <splexas@piraterna.org> ===");
+    console.log("=== Frontend written by Kevin <kevin@piraterna.org> and backend by Splexas <splexas@piraterna.org> (special thanks to claude.ai lmao)===");
     console.log(" - https://piraterna.org");
 }
 
