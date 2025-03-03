@@ -189,7 +189,7 @@ async def get_user(request: web.Request) -> web.Response:
 
 
 async def broadcast(message: str, exclude_session_key=None):
-    for ws_client, session_key in WS_CLIENTS.items():
+    for session_key, ws_client in WS_CLIENTS.items():
         if exclude_session_key != session_key:
             await ws_client.send_str(message)
 
