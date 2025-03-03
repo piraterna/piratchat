@@ -188,6 +188,11 @@ async def get_user(request: web.Request) -> web.Response:
     return web.Response(HTTPStatusCode.NOT_IMPLEMENTED.value)
 
 
+async def broadcast(message: str, exclude_session_key=None):
+    for ws_client, session_key in WS_CLIENTS.items():
+        if exclude_session_key != session_key:
+            await ws_client.send_str(message)
+
 async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Response:
     print("ws cookies:", request.cookies)
     session_key = request.cookies.get("session")
@@ -250,11 +255,7 @@ async def wshandler(request: web.Request) -> web.WebSocketResponse | web.Respons
             print("forwarded data:", forwarded)
             print("forwarding data to: ", WS_CLIENTS.values())
 
-            # forward the message
-            for ws_client in WS_CLIENTS.values():
-                if ws_client != ws:
-                    await ws_client.send_str(forwarded)
-
+            await broadcast(forwarded, exclude_session_key=session_key)
             await ws.send_str(json.dumps({"status": True}))
 
         elif msg.type == aiohttp.WSMsgType.ERROR:
