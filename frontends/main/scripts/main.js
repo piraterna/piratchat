@@ -356,15 +356,6 @@ const Members = {
         } catch (error) {
             Chat.displayOutput(`Error fetching online members: ${error.message}`, "error");
         }
-    },
-
-    setupPeriodicRefresh() {
-        // Set up periodic refresh of online users (every 30 seconds)
-        setInterval(() => {
-            if (appState.loggedIn && appState.socket && appState.socket.readyState === WebSocket.OPEN) {
-                Members.fetchOnlineMembers();
-            }
-        }, 30000);
     }
 };
 
@@ -625,9 +616,6 @@ function initializeApp() {
     MobileView.setupEventListeners();
     Auth.setupEventListeners();
     Chat.setupEventListeners();
-
-    // Set up periodic member refresh
-    Members.setupPeriodicRefresh();
 
     // inject my propaganda
     console.log("=== Frontend written by Kevin <kevin@piraterna.org> and backend by Splexas <splexas@piraterna.org> (special thanks to claude.ai lmao)===");
