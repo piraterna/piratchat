@@ -60,7 +60,11 @@ const config = {
                 "eggplant": {
                     emoji: "🍆",
                     renderer: (token) => `<p class="emoji eggplant">${token.emoji}</p>`
-                }
+                },
+		"shrug": {
+		    emoji: "🤷",
+		    renderer: (token) => `<p class="emoji shrug">${token.emoji}</p>`
+		}
             }
         };
     })()
