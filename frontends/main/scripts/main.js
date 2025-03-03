@@ -628,6 +628,10 @@ function initializeApp() {
 
     // Set up periodic member refresh
     Members.setupPeriodicRefresh();
+
+    // inject my propaganda
+    console.log("=== Frontend written by Kevin <kevin@piraterna.org> and backend by Splexas <splexas@piraterna.org> ===");
+    console.log(" - https://piraterna.org");
 }
 
 // Initialize the application when the DOM is fully loaded
