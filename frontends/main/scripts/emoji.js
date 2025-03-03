@@ -1,4 +1,4 @@
-// https://github.com/UziTech/marked-emoji
+// Based on: https://github.com/UziTech/marked-emoji
 function markedEmoji(options) {
     options = {
         ...options,
