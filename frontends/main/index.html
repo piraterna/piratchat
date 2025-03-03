@@ -378,17 +378,10 @@
         let isMobile = window.innerWidth <= 768;
 
         const currentUrl = new URL(window.location.href);
-<<<<<<< HEAD
         currentUrl.port = '443'; // should already be this but eh
 
         const serverUrl = currentUrl.origin.replace(/^http/, 'ws') + "/ws";
         const apiBaseUrl = currentUrl.origin + "/api";
-=======
-        currentUrl.port = '8888';
-
-        const serverUrl = currentUrl.origin.replace(/^http/, 'ws') + "/ws";
-        const apiBaseUrl = currentUrl.origin;
->>>>>>> 99388879e988d7efc13d3a28b172d21eaea1bdb6
 
         let isInWindow = true;
 
@@ -429,11 +422,7 @@
 
         // get username
         async function getUsername() {
-<<<<<<< HEAD
             const response = await fetch(apiBaseUrl + "/user/@me", {
-=======
-            const response = await fetch("https://chat.piraterna.org:8888/user/@me", {
->>>>>>> 99388879e988d7efc13d3a28b172d21eaea1bdb6
                 method: 'GET',
                 credentials: 'include'
             });
