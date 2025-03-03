@@ -508,13 +508,14 @@ const Chat = {
             }
         } else {
             if (command.toLowerCase() === '/help') {
-                Chat.displayOutput("Available commands:", "server");
+                Chat.displayOutput("==== Available Commands ====", "server");
                 Chat.displayOutput("/help       - Show this help message", "server");
                 Chat.displayOutput("/logout     - Logout from the chat", "server");
                 Chat.displayOutput("/leave      - Disconnect from the server", "server");
                 Chat.displayOutput("/reconnect  - Reconnect to the server", "server");
                 Chat.displayOutput("/online     - Refresh online users list", "server");
                 Chat.displayOutput("/users      - Toggle users list (mobile)", "server");
+                Chat.displayOutput("/emojis     - List all available emojis", "server");
                 Chat.displayOutput("", "server");
                 Chat.displayOutput("Available macros:", "server");
                 Chat.displayOutput("(Macros are run by prefixing the call with a '$' symbol)", "server");
@@ -535,6 +536,11 @@ const Chat = {
                     } else {
                         elements.membersList.classList.add('mobile-shown');
                     }
+                }
+            } else if (command.toLowerCase() === '/emojis') {
+                Chat.displayOutput("==== Available Emojis ====", "server");
+                for (const name in config.emojiTable.emojis) {
+                    Chat.displayOutput(`${name}: :${name}:`, "server");
                 }
             } else {
                 // Regular chat message - send to WebSocket

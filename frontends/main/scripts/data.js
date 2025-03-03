@@ -29,7 +29,6 @@ const appState = {
 
 // ---------------------- Configuration ----------------------
 const config = {
-    // Dynamic URL construction
     serverUrl: (function () {
         const currentUrl = new URL(window.location.href);
         currentUrl.port = '443';
@@ -43,30 +42,35 @@ const config = {
     })(),
 
     emojiTable: (function () {
-        return {
-            emojis: {
-                "heart": {
-                    emoji: "❤️",
-                    renderer: (token) => `<p class="emoji heart">${token.emoji}</p>`
-                },
-                "sob": {
-                    emoji: "😭",
-                    renderer: (token) => `<p class="emoji sob">${token.emoji}</p>`
-                },
-                "skull": {
-                    emoji: "💀",
-                    renderer: (token) => `<p class="emoji skull">${token.emoji}</p>`
-                },
-                "eggplant": {
-                    emoji: "🍆",
-                    renderer: (token) => `<p class="emoji eggplant">${token.emoji}</p>`
-                },
-		"shrug": {
-		    emoji: "🤷",
-		    renderer: (token) => `<p class="emoji shrug">${token.emoji}</p>`
-		}
-            }
+        const emojiTable = {
+            emojis: {}
         };
+
+        const addEmojiUnicode = (name, symbol) => {
+            emojiTable.emojis[name] = {
+                emoji: symbol,
+                renderer: (token) => `<p class="emoji ${name}">${token.emoji}</p>`
+            };
+        };
+
+        const addEmojiImage = (name, path) => {
+            emojiTable.emojis[name] = {
+                emoji: path,
+                renderer: (token) => `<img class="emoji ${name}" src="${token.emoji}" style="width: 20px; height: 20px; vertical-align: sub;">`
+            };
+        };
+
+        addEmojiUnicode("heart", "❤️");
+        addEmojiUnicode("sob", "😭");
+        addEmojiImage("kosher", `${window.location.href}/emojis/kosher.png`);
+        addEmojiImage("skull", `${window.location.href}/emojis/skull.png`);
+        addEmojiImage("troll", `${window.location.href}/emojis/troll.png`);
+        addEmojiImage("shrug", `${window.location.href}/emojis/shrug.png`);
+
+        emojiTable.addEmojiUnicode = addEmojiUnicode;
+        emojiTable.addEmojiImage = addEmojiImage;
+
+        return emojiTable;
     })()
 };
 
