@@ -582,17 +582,27 @@ const Chat = {
         });
 
         elements.inputElement.addEventListener('paste', async (event) => {
+            if (appState.isUploadingFile) {
+                event.preventDefault();
+                return;
+            }
+
             const items = (event.clipboardData || event.originalEvent.clipboardData).items;
 
             for (const item of items) {
                 if (item.type.indexOf('image') !== -1) {
                     const file = item.getAsFile();
                     try {
+                        appState.isUploadingFile = true;
+
                         const url = await Chat.uploadImageToServer(file);
                         const imgTag = `$img(${url})`;
                         elements.inputElement.value += imgTag;
                     } catch (error) {
-                        console.error('Image upload failed:', error);
+                        console.error('Image upload failed: ', error);
+                        this.displayOutput('Image upload failed: ' + error, "error");
+                    } finally {
+                        appState.isUploadingFile = false;
                     }
                 }
             }

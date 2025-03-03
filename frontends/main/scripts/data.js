@@ -23,7 +23,8 @@ const appState = {
     username: '',
     onlineMembers: [],
     isMobile: window.innerWidth <= 768,
-    isInWindow: true
+    isInWindow: true,
+    isUploadingFile: false
 };
 
 // ---------------------- Configuration ----------------------
