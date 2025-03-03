@@ -581,17 +581,19 @@ const Chat = {
             }
         });
 
-        elements.inputElement.addEventListener('paste', (event) => {
+        elements.inputElement.addEventListener('paste', async (event) => {
             const items = (event.clipboardData || event.originalEvent.clipboardData).items;
 
             for (const item of items) {
                 if (item.type.indexOf('image') !== -1) {
-                    const blob = item.getAsFile();
-                    const url = URL.createObjectURL(blob);
-
-                    const imgTag = `$img(${url})`;
-
-                    elements.inputElement.value += imgTag;
+                    const file = item.getAsFile();
+                    try {
+                        const url = await Chat.uploadImageToServer(file);
+                        const imgTag = `$img(${url})`;
+                        elements.inputElement.value += imgTag;
+                    } catch (error) {
+                        console.error('Image upload failed:', error);
+                    }
                 }
             }
         });
@@ -604,6 +606,23 @@ const Chat = {
                 appState.isInWindow = false;
             }
         });
+    },
+
+    async uploadImageToServer(file) {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch('https://chat.piraterna.org/upload.php', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Image upload failed');
+        }
+
+        const result = await response.json();
+        return result.url;
     }
 };
 
