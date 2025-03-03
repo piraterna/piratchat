@@ -98,7 +98,7 @@ const Auth = {
             return;
         }
 
-        Chat.displayOutput("Attempting login...", "system");
+        // Chat.displayOutput("Attempting login...", "system");
 
         try {
             const response = await fetch(`${config.apiBaseUrl}/login`, {
@@ -219,7 +219,7 @@ const Connection = {
 
             appState.socket.onopen = function () {
                 Connection.updateConnectionStatus("Connected", true);
-                Chat.displayOutput("Connected to chat server", "system");
+                Chat.displayOutput("Connected to chat server (see /help for some commands)", "system");
 
                 // Fetch online members immediately when connected
                 Members.fetchOnlineMembers();
@@ -448,6 +448,7 @@ const Chat = {
                 p.classList.add('server-message');
                 break;
             case 'system':
+                finalMessage = `[system] ${finalMessage}`;
                 p.classList.add('system-message');
                 break;
             case 'join':
@@ -534,7 +535,17 @@ const Chat = {
             }
         } else {
             if (command.toLowerCase() === '/help') {
-                Chat.displayOutput("Available commands:\n/help - Show this help message\n/logout - Logout from the chat\n/leave - Disconnect from the server\n/reconnect - Reconnect to the server\n/online - Refresh online users list\n/users - Toggle users list (mobile)", "server");
+                Chat.displayOutput("Available commands:", "server");
+                Chat.displayOutput("/help       - Show this help message", "server");
+                Chat.displayOutput("/logout     - Logout from the chat", "server");
+                Chat.displayOutput("/leave      - Disconnect from the server", "server");
+                Chat.displayOutput("/reconnect  - Reconnect to the server", "server");
+                Chat.displayOutput("/online     - Refresh online users list", "server");
+                Chat.displayOutput("/users      - Toggle users list (mobile)", "server");
+                Chat.displayOutput("", "server");
+                Chat.displayOutput("Available macros:", "server");
+                Chat.displayOutput("(Macros are run by prefixing the call with a '$' symbol)", "server");
+                Chat.displayOutput("img(url)   - Outputs an image", "server");
             } else if (command.toLowerCase() === '/logout') {
                 Auth.logout();
             } else if (command.toLowerCase() === '/leave') {
