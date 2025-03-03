@@ -40,6 +40,29 @@ const config = {
         const currentUrl = new URL(window.location.href);
         currentUrl.port = '443';
         return currentUrl.origin + "/api";
+    })(),
+
+    emojiTable: (function () {
+        return {
+            emojis: {
+                "heart": {
+                    emoji: "❤️",
+                    renderer: (token) => `<p class="emoji heart">${token.emoji}</p>`
+                },
+                "sob": {
+                    emoji: "😭",
+                    renderer: (token) => `<p class="emoji sob">${token.emoji}</p>`
+                },
+                "skull": {
+                    emoji: "💀",
+                    renderer: (token) => `<p class="emoji skull">${token.emoji}</p>`
+                },
+                "eggplant": {
+                    emoji: "🍆",
+                    renderer: (token) => `<p class="emoji eggplant">${token.emoji}</p>`
+                }
+            }
+        };
     })()
 };
 

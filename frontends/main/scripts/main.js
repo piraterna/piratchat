@@ -370,8 +370,39 @@ const CommandCallbacks = {
         img.style.height = 'auto';
         img.style.display = 'block';
         img.style.margin = '10px 0';
+
+        // Add click event to open the image in fullscreen
+        img.addEventListener('click', () => {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = 0;
+            overlay.style.left = 0;
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            overlay.style.zIndex = 1000;
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+
+            const fullscreenImg = document.createElement('img');
+            fullscreenImg.src = url;
+            fullscreenImg.style.maxWidth = '90%';
+            fullscreenImg.style.maxHeight = '90%';
+            fullscreenImg.style.height = 'auto';
+
+            overlay.appendChild(fullscreenImg);
+            document.body.appendChild(overlay);
+
+            // Close the overlay when clicked
+            overlay.addEventListener('click', () => {
+                document.body.removeChild(overlay);
+            });
+        });
+
         elements.outputElement.appendChild(img);
     }
+
 };
 
 const Commands = {
@@ -421,80 +452,31 @@ const Chat = {
 
     async displayOutput(message, type = 'server') {
         const p = document.createElement('p');
+        p.classList.add(`${type}-message`);
+
         let temp = typeof message === 'object' ? message.message || '' : message;
         let finalMessage = Chat.cleanMessage(temp);
+        const pingPattern = new RegExp(`@${appState.username}(\\b|[^a-zA-Z0-9_])`, 'g');
+        const highlightMessage = pingPattern.test(finalMessage);
 
-        const pingPattern = new RegExp(`@${appState.username}\\b`, 'g');
-        let highlightMessage = false;
-        if (pingPattern.test(finalMessage)) {
-            highlightMessage = true;
+        // Strip out wrapping block elements
+        finalMessage = marked.parse(finalMessage).replace(/<\/?(p|div)[^>]*>/g, '').replace(/\n/g, ' ');
+
+        if (type === 'server' || type === 'system' || type === 'error') {
+            finalMessage = `<span>[${type}]</span> ${finalMessage}`;
+        } else if (type === 'join') {
+            finalMessage += `<em>has ${type}ed the chat.</em>`;
+        } else if (type === 'leave') {
+            finalMessage += `<em>has ${type}d the chat.</em>`;
+        } else if (type === 'chat' || type === 'self') {
+            finalMessage = `<strong>&lt;${type === 'self' ? appState.username : message.author}&gt;</strong> ${finalMessage}`;
         }
 
-        switch (type) {
-            case 'user':
-                p.classList.add('user-message');
-                break;
-            case 'server':
-                finalMessage = `[server] ${finalMessage}`;
-                p.classList.add('server-message');
-                break;
-            case 'system':
-                finalMessage = `[system] ${finalMessage}`;
-                p.classList.add('system-message');
-                break;
-            case 'join':
-                p.classList.add('join-message');
-                finalMessage = `${finalMessage} has joined the chat.`;
-                break;
-            case 'leave':
-                p.classList.add('leave-message');
-                finalMessage = `${finalMessage} has left the chat.`;
-                break;
-            case 'chat':
-                finalMessage = `<${message.author}> ${finalMessage}`;
-                p.classList.add('user-message');
-                break;
-            case 'self':
-                finalMessage = `<${appState.username}> ${finalMessage}`;
-                p.classList.add('user-message');
-                break;
-            case 'error':
-                finalMessage = `[error] ${finalMessage}`;
-                p.classList.add('leave-message');
-                break;
-        }
+        p.innerHTML = finalMessage;
+        if (highlightMessage) p.style.backgroundColor = "#333333";
 
-        // Detect and replace URLs with <a> tags
-        const urlPattern = /(https?:\/\/[^\s]+)/g;
-        let match;
-        let messageNode = document.createDocumentFragment(); // to safely append multiple nodes
-
-        while ((match = urlPattern.exec(finalMessage)) !== null) {
-            const [url] = match;
-            // Split the message into parts, with the URL being replaced by a link
-            const beforeUrl = finalMessage.slice(0, match.index);
-            const afterUrl = finalMessage.slice(match.index + url.length);
-
-            // Append the before part, the link, and the after part
-            messageNode.appendChild(document.createTextNode(beforeUrl));
-            messageNode.appendChild(Chat.createLinkFromUrl(url));
-            finalMessage = afterUrl;
-        }
-
-        // Append any remaining message text that isn't a URL
-        if (finalMessage.length > 0) {
-            messageNode.appendChild(document.createTextNode(finalMessage));
-        }
-
-        if (highlightMessage) {
-            p.style.backgroundColor = "#333333";
-        }
-
-        p.appendChild(messageNode); // Use document fragment to append
         elements.outputElement.appendChild(p);
-
         await Commands.handleCommands(temp);
-
         elements.outputElement.scrollTop = elements.outputElement.scrollHeight;
     },
 
@@ -637,7 +619,7 @@ const Chat = {
 };
 
 // ---------------------- Application Initialization ----------------------
-function initializeApp() {
+async function initializeApp() {
     // Initialize mobile view
     MobileView.init();
 
@@ -649,6 +631,10 @@ function initializeApp() {
     // inject my propaganda
     console.log("=== Frontend written by Kevin <kevin@piraterna.org> and backend by Splexas <splexas@piraterna.org> (special thanks to claude.ai lmao)===");
     console.log(" - https://piraterna.org");
+
+    // Setup marked (markdown parser)
+    marked.use(markedEmoji(config.emojiTable));
+
 }
 
 // Initialize the application when the DOM is fully loaded
