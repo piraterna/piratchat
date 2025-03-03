@@ -21,7 +21,7 @@ The application is built using:
 
 ### Authentication
 
-#### `POST /register`
+#### `POST /api/register`
 Register a new user.
 
 **Request Body:**
@@ -37,7 +37,7 @@ Register a new user.
 - `409 Conflict`: Username already exists
 - `422 Unprocessable Entity`: Invalid request format
 
-#### `POST /login`
+#### `POST /api/login`
 Authenticate with a user key.
 
 **Request Body:**
@@ -52,7 +52,7 @@ Authenticate with a user key.
 - `401 Unauthorized`: Invalid key
 - `422 Unprocessable Entity`: Invalid request format
 
-#### `GET /logout`
+#### `GET /api/logout`
 End the current user session.
 
 **Responses:**
@@ -60,7 +60,7 @@ End the current user session.
 
 ### User Information
 
-#### `GET /online`
+#### `GET /api/online`
 Retrieve a list of currently online users.
 
 **Responses:**
@@ -68,7 +68,7 @@ Retrieve a list of currently online users.
 - `401 Unauthorized`: Session invalid or expired
 - `422 Unprocessable Entity`: Missing session cookie
 
-#### `GET /user/{username}`
+#### `GET /api/user/{username}`
 Get information about a specific user. Use `@me` to get information about the current user.
 
 **Responses:**
