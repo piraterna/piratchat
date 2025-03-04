@@ -640,7 +640,8 @@ async function initializeApp() {
 
     // Setup marked (markdown parser)
     marked.use(markedEmoji(config.emojiTable));
-
+    marked.use(baseUrl("https://chat.piraterna.org/"));
+    marked.use(markedAlert());
 }
 
 // Initialize the application when the DOM is fully loaded
