@@ -2,6 +2,8 @@ from aiohttp import web
 from routes import register, login, logout, get_online, get_user, wshandler
 from routes import handle_sessions, disconnect_ws_clients
 
+import uvloop
+
 app = web.Application()
 
 app.add_routes(
@@ -26,4 +28,5 @@ app.on_startup.append(lambda app: handle_sessions())
 app.on_shutdown.append(on_shutdown)
 
 if __name__ == "__main__":
-    web.run_app(app, host="0.0.0.0", port=7777)
+    loop = uvloop.new_event_loop()
+    web.run_app(app, host="0.0.0.0", port=7777, loop=loop)
