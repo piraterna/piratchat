@@ -1,4 +1,4 @@
-# Real-time Chat Application
+# Real-time Chat Application (Piratchat)
 
 A lightweight, real-time chat application built with Python using the aiohttp framework. This application provides user registration, authentication, and real-time messaging capabilities through WebSockets.
 
